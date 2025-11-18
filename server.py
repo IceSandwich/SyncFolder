@@ -1,11 +1,17 @@
 import os
 import hashlib
 from flask import Flask, request, jsonify
+import argparse
 
-# --- 配置 ---
-BASE_DIR = os.path.abspath(R"F:\Study\电子书")
-PORT = 7860
-# -------------
+class Args:
+    port: int
+    base_dir: str
+
+def setup_parser() -> Args:
+    parser = argparse.ArgumentParser(description="SyncFolder")
+    parser.add_argument("--port", type=int, default=7860, help="服务器端口，注意防火墙放行")
+    parser.add_argument("--base_dir", type=str, required=True, help="目标目录")
+    return parser.parse_args()
 
 app = Flask(__name__)
 
@@ -100,10 +106,21 @@ def upload_file():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def get_local_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    local_ip = s.getsockname()[0]
+    s.close()
+    return local_ip
+
 if __name__ == "__main__":
-    print(f"--- B 电脑文件接收服务器 (已优化) ---")
-    print(f"目标目录: {BASE_DIR}")
-    if not os.path.exists(BASE_DIR):
-        os.makedirs(BASE_DIR)
-    print(f"正在启动服务器，监听 0.0.0.0:{PORT} ...")
-    app.run(host='0.0.0.0', port=PORT)
+    args = setup_parser()
+    local_ip = get_local_ip()
+    print(f"--- 目标电脑服务器 ---")
+    print(f"目标目录: {args.base_dir}")
+    if not os.path.exists(args.base_dir):
+        print("目标电脑上不存在指定目录，请检查！")
+    else:
+        print(f"正在启动服务器，监听 {local_ip}:{args.port} ...")
+        app.run(host='0.0.0.0', port=args.port)
